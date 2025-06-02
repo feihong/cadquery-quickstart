@@ -1,31 +1,32 @@
 """
-This pyramid takes more effort to construct, but it's more accurate than the hobo pyramid.
+You can use this to generate pyramids with any kind of regular polygon as the base.
 """
 
+import math
+import itertools
 import cadquery as cq
 
 # Parameters
-base = 4
+radius = 2 * math.sqrt(2)
 height = 5
-half = base / 2
-
-# Base corner points
-p1 = cq.Vector(-half, -half, 0)
-p2 = cq.Vector(half, -half, 0)
-p3 = cq.Vector(half, half, 0)
-p4 = cq.Vector(-half, half, 0)
+sides = 4
 
 # Apex point
 apex = cq.Vector(0, 0, height)
 
-# Create triangular faces
-faces = [
-    cq.Face.makeFromWires(cq.Wire.makePolygon([p1, p2, apex, p1])),
-    cq.Face.makeFromWires(cq.Wire.makePolygon([p2, p3, apex, p2])),
-    cq.Face.makeFromWires(cq.Wire.makePolygon([p3, p4, apex, p3])),
-    cq.Face.makeFromWires(cq.Wire.makePolygon([p4, p1, apex, p4])),
-    cq.Face.makeFromWires(cq.Wire.makePolygon([p1, p2, p3, p4, p1]))
-]
+ngon = cq.Sketch().regularPolygon(radius, sides).val()
+base_corner_points = [v.Center() for v in ngon.Vertices()]
+print([(v.x,v.y) for v in base_corner_points])
+
+face_vertices = itertools.chain(
+    itertools.pairwise(base_corner_points),
+    [(base_corner_points[-1], base_corner_points[0])])
+face_vertices = [vs + (apex,) for vs in face_vertices] + [base_corner_points]
+
+# for vs in face_vertices:
+#     print(vs)
+
+faces = [cq.Face.makeFromWires(cq.Wire.makePolygon(vs, close=True)) for vs in face_vertices]
 
 # Sew the faces into a shell, then make a solid
 shell = cq.Shell.makeShell(faces)
