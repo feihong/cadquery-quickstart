@@ -14,18 +14,16 @@ sides = 4
 # Apex point
 apex = cq.Vector(0, 0, height)
 
+def get_face_vertices(polygon : cq.occ_impl.shapes.Face, apex):
+    # Vertices for base
+    yield [v.Center() for v in polygon.Vertices()]
+
+    for edge in polygon.Edges():
+        # Vertices for triangle formed by edge and apex
+        yield [apex, *(v.Center() for v in edge.Vertices())]
+
 ngon = cq.Sketch().regularPolygon(radius, sides).val()
-base_corner_points = [v.Center() for v in ngon.Vertices()]
-print([(v.x,v.y) for v in base_corner_points])
-
-face_vertices = itertools.chain(
-    itertools.pairwise(base_corner_points),
-    [(base_corner_points[-1], base_corner_points[0])])
-face_vertices = [vs + (apex,) for vs in face_vertices] + [base_corner_points]
-
-# for vs in face_vertices:
-#     print(vs)
-
+face_vertices = get_face_vertices(ngon, apex)
 faces = [cq.Face.makeFromWires(cq.Wire.makePolygon(vs, close=True)) for vs in face_vertices]
 
 # Sew the faces into a shell, then make a solid
